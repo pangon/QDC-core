@@ -535,7 +535,7 @@ int main(int nOfArgs, char** args) {
 
 	fprintf(output, "/*\n * QDC (quick direct-method controlled) is an optimized exact\n * implementation of the \
 Gillespie's direct-method. It is designed\n * for biochemical simulations when there is the need of dynamic\n * \
-parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2011 Claudio \
+parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2012 Claudio \
 Felicioli\n * mail: c.felicioli@1d20.net - pangon@gmail.com\n *\n * QDC is free software; you can redistribute it \
 and/or modify\n * it under the terms of the GNU General Public License as published by\n * the Free Software \
 Foundation; either version 3 of the License, or\n * (at your option) any later version.\n *\n * This program is \
@@ -548,7 +548,13 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 		//detecting reaction order
 		int64 k=0;
 		while(reactFrom[i][k]!=-1) k++;
-		if(k==1 || k==0) {
+		if(k==0) {
+			if(reactK[i]<0) {
+				fprintf(output, "#define basalRate%lld Avo*globalvar_%s\n", i, variablesNames[int64(-reactK[i])-1]+1);
+				}
+			else fprintf(output, "#define basalRate%lld Avo*%.16Lf\n", i, reactK[i]);
+			}
+		else if(k==1) {
 			if(reactK[i]<0) {
 				fprintf(output, "#define basalRate%lld globalvar_%s\n", i, variablesNames[int64(-reactK[i])-1]+1);
 				}
@@ -556,9 +562,9 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 			}
 		else if(k==2) {
 			if(reactK[i]<0) {
-				fprintf(output, "#define basalRate%lld (globalvar_%s/Vol)\n", i, variablesNames[int64(-reactK[i])-1]+1);
+				fprintf(output, "#define basalRate%lld (globalvar_%s/(Vol*Avo))\n", i, variablesNames[int64(-reactK[i])-1]+1);
 				}
-			else fprintf(output, "#define basalRate%lld (%.16Lf/Vol)\n", i, reactK[i]);
+			else fprintf(output, "#define basalRate%lld (%.16Lf/(Vol*Avo))\n", i, reactK[i]);
 			}
 		else {
 			fprintf(stderr, "error: unimplemented %lld-order\n", k);
@@ -620,7 +626,7 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 
 	fprintf(output, "/*\n * QDC (quick direct-method controlled) is an optimized exact\n * implementation of the \
 Gillespie's direct-method. It is designed\n * for biochemical simulations when there is the need of dynamic\n * \
-parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2011 Claudio \
+parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2012 Claudio \
 Felicioli\n * mail: c.felicioli@1d20.net - pangon@gmail.com\n *\n * QDC is free software; you can redistribute it \
 and/or modify\n * it under the terms of the GNU General Public License as published by\n * the Free Software \
 Foundation; either version 3 of the License, or\n * (at your option) any later version.\n *\n * This program is \
@@ -786,7 +792,8 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "#define nOfReactions %lld\n", nOfReactions);
 	fprintf(output, "#define nOfInstReactions %lld\n", nOfInstReactions);
 //	fprintf(output, "#define Vol 0.0000000000000000003\n\n");
-	fprintf(output, "#define Vol %.300Lf\n\n", volume);
+	fprintf(output, "#define Vol %.300LfL\n", volume);
+	fprintf(output, "#define Avo 602200000000000000000000.0L\n\n");
 
 	fprintf(output, "typedef long long int int64;\n");
 	fprintf(output, "typedef long double double96;\n\n");
@@ -826,15 +833,15 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "\telse tSampling=0.1;\n");
 	fprintf(output, "\tfor(int64 i=0;i<(nOfReactions+nOfInstReactions);i++) reactCounts[i]=0;\n");
 	fprintf(output, "\tinit();\n\n");
-	fprintf(output, "\tif((output=fopen(\"data.reagents\", \"w\"))==NULL) {\n");
+	fprintf(output, "\tif((output=fopen(\"%s_reagents.csv\", \"w\"))==NULL) {\n", args[1]);
 	fprintf(output, "\t\tfprintf(stderr, \"error: fopen the reagents output file fails\\n\");\n");
 	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
 	fprintf(output, "\t\t}\n");
-	fprintf(output, "\tif((output2=fopen(\"data.reactions\", \"w\"))==NULL) {\n");
+	fprintf(output, "\tif((output2=fopen(\"%s_reactions.csv\", \"w\"))==NULL) {\n", args[1]);
 	fprintf(output, "\t\tfprintf(stderr, \"error: fopen the reactions output file fails\\n\");\n");
 	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
 	fprintf(output, "\t\t}\n");
-	fprintf(output, "\tif((output3=fopen(\"data.reactioncounts\", \"w\"))==NULL) {\n");
+	fprintf(output, "\tif((output3=fopen(\"%s_reactioncounts.csv\", \"w\"))==NULL) {\n", args[1]);
 	fprintf(output, "\t\tfprintf(stderr, \"error: fopen the reactioncounts output file fails\\n\");\n");
 	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
 	fprintf(output, "\t\t}\n\n");
