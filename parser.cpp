@@ -37,6 +37,7 @@
 #define MAX_REACTION_FROM 20
 #define MAX_REACTION_TO 20
 #define MAX_INTRODUCTIONS 1000
+#define MAX_TERMNINATION_CONDITIONS 1000
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -73,6 +74,14 @@ int64 instReactToN[MAX_REACTIONS][MAX_REACTION_TO];
 char* baseline;
 char* line;
 double96 volume;
+double96 time_limit;
+bool debug_engine;
+int64 nOfMax_values=0;
+int64 max_values_reagent[MAX_TERMNINATION_CONDITIONS];
+int64 max_values_count[MAX_TERMNINATION_CONDITIONS];
+int64 nOfMin_values=0;
+int64 min_values_reagent[MAX_TERMNINATION_CONDITIONS];
+int64 min_values_count[MAX_TERMNINATION_CONDITIONS];
 
 void trim(char*& s) {
 	while(s[0]==' ' || s[0]=='\t' || s[0]=='\n') s++;
@@ -113,21 +122,39 @@ void readline(FILE* input, const char* errormessage) {
 	}
 
 int main(int nOfArgs, char** args) {
+	//type precision checks
 	if(sizeof(int64)<8) {
-		printf("FATAL ERROR: int64 type bytes < 8 (%d)\n", sizeof(int64));
+		printf("FATAL ERROR: int64 type bytes < 8 (%zu)\n", sizeof(int64));
 		exit(EXIT_FAILURE);
 		}
 	if(sizeof(double96)<12) {
-		printf("FATAL ERROR: double96 type bytes < 12 (%d)\n", sizeof(double96));
+		printf("FATAL ERROR: double96 type bytes < 12 (%zu)\n", sizeof(double96));
 		exit(EXIT_FAILURE);
 		}
-	if(nOfArgs!=2) {
-		printf("usage: %s <descriptionfile>\n", args[0]);
-		exit(EXIT_FAILURE);
+
+	//default debug mode
+	debug_engine=false;
+
+	//input parameters parsing
+	bool recognized_parameter;
+	for(int i=1;i<nOfArgs-1;i++) {
+		recognized_parameter=false;
+
+		if(strcmp(args[i], "-debug")==0) {
+			recognized_parameter=true;
+			debug_engine=true;
+			}
+
+		if(!recognized_parameter) {
+			fprintf(stderr, "unexpected parameter: %s\n", args[i]);
+			fprintf(stderr, "usage: %s [-debug] <descriptionfile>\n", args[0]);
+			exit(EXIT_FAILURE);
+			}
 		}
-	FILE* input=fopen(args[1], "r");
+
+	FILE* input=fopen(args[nOfArgs-1], "r");
 	if(input==NULL) {
-		fprintf(stderr, "cannot open description file \"%s\".\n", args[1]);
+		fprintf(stderr, "cannot open description file \"%s\".\n", args[nOfArgs-1]);
 		exit(EXIT_FAILURE);
 		}
 	baseline=new char[10000];
@@ -178,6 +205,63 @@ int main(int nOfArgs, char** args) {
 
 	//void line
 	readline(input, "missing blank line after volume declaration");
+
+	printf("parsing termination conditions declaration\n");
+	//time + void line
+	readline(input, "time declaration missing");
+	token=strtok_r(line, ">", &a);
+	if(token==NULL) {
+		fprintf(stderr, "missing or wrong time parameter.\n");
+		exit(EXIT_FAILURE);
+		}
+	trim(token);
+	if(strcmp(token, "time")!=0) {
+		fprintf(stderr, "missing or wrong time parameter.\n");
+		exit(EXIT_FAILURE);
+		}
+	token=strtok_r(NULL, ">", &a);
+	trim(token);
+	time_limit=atof(token);
+	readline(input, "termination conditions declaration must be followed by a blank line");
+	bool max_value;
+	while(strlen(line)>0) {
+		max_value=(strchr(line, '>')!=NULL);
+
+		if(max_value) {
+			token=strtok_r(line, ">", &a);
+			if(token==NULL) {
+				fprintf(stderr, "missing or wrong termination condition declaration (\"%s\").\n", line);
+				exit(EXIT_FAILURE);
+				}
+			trim(token);
+			max_values_reagent[nOfMax_values]=reagentNumber(token);
+			token=strtok_r(NULL, ">", &a);
+			trim(token);
+			if(strtoll(token, (char**)NULL, 10)==LLONG_MAX) {
+				fprintf(stderr, "WARNING: NUMBERS IN MODEL ARE GREATER THAN MAXIMUM %lld.\n", LLONG_MAX);
+				}
+			max_values_count[nOfMax_values]=strtoll(token, (char**)NULL, 10);
+			nOfMax_values++;
+			}
+		else {
+			token=strtok_r(line, "<", &a);
+			if(token==NULL) {
+				fprintf(stderr, "missing or wrong termination condition declaration (\"%s\").\n", line);
+				exit(EXIT_FAILURE);
+				}
+			trim(token);
+			min_values_reagent[nOfMin_values]=reagentNumber(token);
+			token=strtok_r(NULL, "<", &a);
+			trim(token);
+			if(strtoll(token, (char**)NULL, 10)==LLONG_MAX) {
+				fprintf(stderr, "WARNING: NUMBERS IN MODEL ARE GREATER THAN MAXIMUM %lld.\n", LLONG_MAX);
+				}
+			min_values_count[nOfMin_values]=strtoll(token, (char**)NULL, 10);
+			nOfMin_values++;
+			}
+
+		readline(input, "termination conditions declaration must be followed by a blank line");
+		}
 
 	printf("parsing reactions declaration\n");
 	//reactions + void line
@@ -663,15 +747,17 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 					fprintf(stderr, "error: unimplemented %lld-order\n", k);
 					exit(EXIT_FAILURE);
 					}
-				fprintf(output, "\t//DEBUG\n");
-				fprintf(output, "\tif(au[%lld]<0.0) {\n", j);
-				fprintf(output, "\t\tprintf(\"error: a0=%%Lf\\n\", a0);\n");
-				fprintf(output, "\t\tfor(int64 j=0;j<nOfReagents;j++) printf(\"%%lld,\", reagent[j]);\n");
-				fprintf(output, "\t\tprintf(\"\\n\");\n");
-				fprintf(output, "\t\tfor(int64 j=0;j<nOfReactions;j++) printf(\"%%Lf,\", au[j]);\n");
-				fprintf(output, "\t\tprintf(\"\\n\");\n");
-				fprintf(output, "\t\texit(EXIT_FAILURE);\n");
-				fprintf(output, "\t\t}\n");
+				if(debug_engine) {
+					fprintf(output, "\t//DEBUG\n");
+					fprintf(output, "\tif(au[%lld]<0.0) {\n", j);
+					fprintf(output, "\t\tprintf(\"error: a0=%%Lf\\n\", a0);\n");
+					fprintf(output, "\t\tfor(int64 j=0;j<nOfReagents;j++) printf(\"%%lld,\", reagent[j]);\n");
+					fprintf(output, "\t\tprintf(\"\\n\");\n");
+					fprintf(output, "\t\tfor(int64 j=0;j<nOfReactions;j++) printf(\"%%Lf,\", au[j]);\n");
+					fprintf(output, "\t\tprintf(\"\\n\");\n");
+					fprintf(output, "\t\texit(EXIT_FAILURE);\n");
+					fprintf(output, "\t\t}\n");
+					}
 				}
 			}
 		for(int64 j=0;j<nOfInstReactions;j++) {
@@ -811,6 +897,7 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "FILE* output;\n");
 	fprintf(output, "FILE* output2;\n");
 	fprintf(output, "FILE* output3;\n");
+	fprintf(output, "FILE* output4;\n");
 	fprintf(output, "double96 t;\n");
 	fprintf(output, "double96 a;\n");
 	fprintf(output, "double96 a0;\n");
@@ -823,26 +910,30 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "\n");
 	fprintf(output, "void GLIteration(void);\n\n");
 	fprintf(output, "int main(int nOfArgs, char** args) {\n");
-	fprintf(output, "\tif(nOfArgs!=3 && nOfArgs!=2) {\n");
-	fprintf(output, "\t\tfprintf(stderr, \"usage: %%s timeLimit samplingFrequency\\n\", args[0]);\n");
+	fprintf(output, "\tif(nOfArgs!=3 && nOfArgs!=2 && nOfArgs!=1) {\n");
+	fprintf(output, "\t\tfprintf(stderr, \"usage: %%s [samplingFrequency [randomSeed]]\\n\", args[0]);\n");
 	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
-	fprintf(output, "\t\t}\n");
-	fprintf(output, "\tdouble96 tLimit=atof(args[1]);\n");
-	fprintf(output, "\tdouble96 tSampling;\n");
-	fprintf(output, "\tif(nOfArgs==3) tSampling=atof(args[2]);\n");
-	fprintf(output, "\telse tSampling=0.1;\n");
+	fprintf(output, "\t\t}\n\n");
+	fprintf(output, "\tdouble96 tLimit=%.20LfL;\n", time_limit);
+	fprintf(output, "\tdouble96 tSampling;\n\n");
+	fprintf(output, "\tif(nOfArgs>=2) tSampling=atof(args[1]);\n");
+	fprintf(output, "\telse tSampling=0.1;\n\n");
 	fprintf(output, "\tfor(int64 i=0;i<(nOfReactions+nOfInstReactions);i++) reactCounts[i]=0;\n");
 	fprintf(output, "\tinit();\n\n");
-	fprintf(output, "\tif((output=fopen(\"%s_reagents.csv\", \"w\"))==NULL) {\n", args[1]);
+	fprintf(output, "\tif((output=fopen(\"%s_reagents.csv\", \"w\"))==NULL) {\n", args[nOfArgs-1]);
 	fprintf(output, "\t\tfprintf(stderr, \"error: fopen the reagents output file fails\\n\");\n");
 	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
 	fprintf(output, "\t\t}\n");
-	fprintf(output, "\tif((output2=fopen(\"%s_reactions.csv\", \"w\"))==NULL) {\n", args[1]);
+	fprintf(output, "\tif((output2=fopen(\"%s_reactions.csv\", \"w\"))==NULL) {\n", args[nOfArgs-1]);
 	fprintf(output, "\t\tfprintf(stderr, \"error: fopen the reactions output file fails\\n\");\n");
 	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
 	fprintf(output, "\t\t}\n");
-	fprintf(output, "\tif((output3=fopen(\"%s_reactioncounts.csv\", \"w\"))==NULL) {\n", args[1]);
+	fprintf(output, "\tif((output3=fopen(\"%s_reactioncounts.csv\", \"w\"))==NULL) {\n", args[nOfArgs-1]);
 	fprintf(output, "\t\tfprintf(stderr, \"error: fopen the reactioncounts output file fails\\n\");\n");
+	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
+	fprintf(output, "\t\t}\n");
+	fprintf(output, "\tif((output4=fopen(\"%s_log.txt\", \"w\"))==NULL) {\n", args[nOfArgs-1]);
+	fprintf(output, "\t\tfprintf(stderr, \"error: fopen the log output file fails\\n\");\n");
 	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
 	fprintf(output, "\t\t}\n\n");
 	fprintf(output, "\tfprintf(output,\"");
@@ -922,10 +1013,30 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 			j++;
 			}
 		}
-	fprintf(output, "\\n\");\n\n");
-	fprintf(output, "\tint randomseed=time(NULL);\n");
-	fprintf(output, "\t//DEBUG\n");
-	fprintf(output, "\t//fprintf(output, \"%%d\\n\\n\", randomseed);\n");
+	fprintf(output, "\\n\");\n");
+
+	fprintf(output, "\tfprintf(output4,\"model parsing command parameters:\\n\");\n");
+	fprintf(output, "\tfprintf(output4,\"");
+	for(int i=0;i<nOfArgs;i++) fprintf(output, "%s ", args[i]);
+	fprintf(output, "\\n\\n\");\n");
+
+	fprintf(output, "\tfprintf(output4,\"simulation execution parameters:\\n\");\n");
+	fprintf(output, "\tfor(int i=0;i<nOfArgs;i++) fprintf(output4, \"%%s \", args[i]);\n");
+	fprintf(output, "\tfprintf(output4,\"\\n\\n\");\n");
+
+	fprintf(output, "\tfprintf(output4,\"model name: %s\\n\\n\");\n", args[nOfArgs-1]);
+
+	fprintf(output, "\ttime_t timer_start;\n");
+	fprintf(output, "\tstruct tm* tm_info;\n");
+	fprintf(output, "\tchar tm_string[50];\n");
+	fprintf(output, "\ttime(&timer_start);\n");
+	fprintf(output, "\ttm_info=localtime(&timer_start);\n");
+	fprintf(output, "\tstrftime(tm_string, 50, \"%%H:%%M:%%S %%Y/%%m/%%d\", tm_info);\n");
+	fprintf(output, "\tfprintf(output4,\"simulation start time: %%s\\n\\n\", tm_string);\n");
+
+	fprintf(output, "\tint randomseed;\n");
+	fprintf(output, "\tif(nOfArgs==3) randomseed=atoi(args[2]);\n");
+	fprintf(output, "\telse randomseed=time(NULL);\n");
 	fprintf(output, "\tsrandom(randomseed);\n");
 //	fprintf(output, "\tdouble96 tLimit=40.0;\n");
 	//fprintf(output, "\tdouble96 tSampling=0.01;\n");
@@ -1010,7 +1121,24 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "\t\t\tfprintf(output3, \"%%s\", lastLine3);\n");
 	fprintf(output, "\t\t\t}\n");
 	fprintf(output, "\t\tif(ite%%100000==0) printf(\"iteration %%lld   t=%%.20Lf\\n\", ite, t);\n");
+
+	for(int64 i=0;i<nOfMax_values;i++) fprintf(output, "\t\tif(reagent[%lld]>%lldLL) break;\n", max_values_reagent[i], max_values_count[i]);
+	for(int64 i=0;i<nOfMin_values;i++) fprintf(output, "\t\tif(reagent[%lld]<%lldLL) break;\n", min_values_reagent[i], min_values_count[i]);
+
 	fprintf(output, "\t\t}\n\n");
+
+	fprintf(output, "\ttime_t timer_end;\n");
+	fprintf(output, "\ttime(&timer_end);\n");
+	fprintf(output, "\tfprintf(output4,\"run time: %%ld seconds\\n\\n\", timer_end-timer_start);\n");
+
+	fprintf(output, "\tfprintf(output4,\"simulated time: %%Lf seconds\\n\\n\", t);\n");
+
+	fprintf(output, "\tint64 total_reactCounts=0;\n");
+	fprintf(output, "\tfor(int i=0;i<nOfReactions+nOfInstReactions;i++) total_reactCounts+=reactCounts[i];\n");
+	fprintf(output, "\tfprintf(output4,\"total reactions count: %%lld reactions\\n\\n\", total_reactCounts);\n");
+
+	fprintf(output, "\tfprintf(output4,\"random seed: %%d\\n\\n\", randomseed);\n\n");
+
 	fprintf(output, "\tint output_fd;\n");
 	fprintf(output, "\tif((output_fd=fileno(output))==-1) {\n");
 	fprintf(output, "\t\tfprintf(stderr, \"failed getting output file descriptor\");\n");
@@ -1047,6 +1175,18 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "\tif(fclose(output3)!=0) {\n");
 	fprintf(output, "\t\tfprintf(stderr, \"failed fclose of output\");\n");
 	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
+	fprintf(output, "\t\t}\n");
+	fprintf(output, "\tif((output_fd=fileno(output4))==-1) {\n");
+	fprintf(output, "\t\tfprintf(stderr, \"failed getting output file descriptor\");\n");
+	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
+	fprintf(output, "\t\t}\n");
+	fprintf(output, "\tif(fsync(output_fd)!=0) {\n");
+	fprintf(output, "\t\tfprintf(stderr, \"failed fsync of output\");\n");
+	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
+	fprintf(output, "\t\t}\n");
+	fprintf(output, "\tif(fclose(output4)!=0) {\n");
+	fprintf(output, "\t\tfprintf(stderr, \"failed fclose of output\");\n");
+	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
 	fprintf(output, "\t\t}\n\n");
 	fprintf(output, "\texit(EXIT_SUCCESS);\n");
 	fprintf(output, "\t}\n\n");
@@ -1055,15 +1195,17 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "\tfor(int64 i=0;i<nOfReactions;i++) {\n");
 	fprintf(output, "\t\ta0+=au[i];\n");
 
-	fprintf(output, "\t\t//DEBUG\n");
-	fprintf(output, "\t\tif(a0<0.0) {\n");
-	fprintf(output, "\t\t\tprintf(\"error: a0=%%Lf\\n\", a0);\n");
-	fprintf(output, "\t\t\tfor(int64 j=0;j<nOfReagents;j++) printf(\"%%lld,\", reagent[j]);\n");
-	fprintf(output, "\t\t\tprintf(\"\\n\");\n");
-	fprintf(output, "\t\t\tfor(int64 j=0;j<nOfReactions;j++) printf(\"%%Lf,\", au[j]);\n");
-	fprintf(output, "\t\t\tprintf(\"\\n\");\n");
-	fprintf(output, "\t\t\texit(EXIT_FAILURE);\n");
-	fprintf(output, "\t\t\t}\n");
+	if(debug_engine) {
+		fprintf(output, "\t\t//DEBUG\n");
+		fprintf(output, "\t\tif(a0<0.0) {\n");
+		fprintf(output, "\t\t\tprintf(\"error: a0=%%Lf\\n\", a0);\n");
+		fprintf(output, "\t\t\tfor(int64 j=0;j<nOfReagents;j++) printf(\"%%lld,\", reagent[j]);\n");
+		fprintf(output, "\t\t\tprintf(\"\\n\");\n");
+		fprintf(output, "\t\t\tfor(int64 j=0;j<nOfReactions;j++) printf(\"%%Lf,\", au[j]);\n");
+		fprintf(output, "\t\t\tprintf(\"\\n\");\n");
+		fprintf(output, "\t\t\texit(EXIT_FAILURE);\n");
+		fprintf(output, "\t\t\t}\n");
+		}
 	fprintf(output, "\t\t}\n");
 	fprintf(output, "\tif(a0==0.0) {\n");
 	fprintf(output, "\t\tprintf(\"error: a0=0.0\\n\");\n");
@@ -1075,15 +1217,17 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "\twhile(a>at+au[selectedReaction]) {\n");
 	fprintf(output, "\t\tat+=au[selectedReaction];\n");
 	fprintf(output, "\t\tselectedReaction++;\n");
-	fprintf(output, "\t\t//DEBUG\n");
-	fprintf(output, "\t\tif(selectedReaction>=nOfReactions) {\n");
-	fprintf(output, "\t\t\tprintf(\"error: selectedReaction==nOfReactions (a=%%Lf, a0=%%Lf)\\n\", a, a0);\n");
-	fprintf(output, "\t\t\tfor(int64 j=0;j<nOfReagents;j++) printf(\"%%lld,\", reagent[j]);\n");
-	fprintf(output, "\t\t\tprintf(\"\\n\");\n");
-	fprintf(output, "\t\t\tfor(int64 j=0;j<nOfReactions;j++) printf(\"%%Lf,\", au[j]);\n");
-	fprintf(output, "\t\t\tprintf(\"\\n\");\n");
-	fprintf(output, "\t\t\texit(EXIT_FAILURE);\n");
-	fprintf(output, "\t\t\t}\n");
+	if(debug_engine) {
+		fprintf(output, "\t\t//DEBUG\n");
+		fprintf(output, "\t\tif(selectedReaction>=nOfReactions) {\n");
+		fprintf(output, "\t\t\tprintf(\"error: selectedReaction==nOfReactions (a=%%Lf, a0=%%Lf)\\n\", a, a0);\n");
+		fprintf(output, "\t\t\tfor(int64 j=0;j<nOfReagents;j++) printf(\"%%lld,\", reagent[j]);\n");
+		fprintf(output, "\t\t\tprintf(\"\\n\");\n");
+		fprintf(output, "\t\t\tfor(int64 j=0;j<nOfReactions;j++) printf(\"%%Lf,\", au[j]);\n");
+		fprintf(output, "\t\t\tprintf(\"\\n\");\n");
+		fprintf(output, "\t\t\texit(EXIT_FAILURE);\n");
+		fprintf(output, "\t\t\t}\n");
+		}
 	fprintf(output, "\t\t}\n");
 	fprintf(output, "\tif(au[selectedReaction]==0.0) {\n");
 	fprintf(output, "\t\tprintf(\"WARNING: au[%%lld]==0.0 (a=%%Lf, a0=%%Lf)\\n\", selectedReaction, a, a0);\n");
@@ -1107,15 +1251,17 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "\t\ttao_denom=((double)(random()%%RAND_MAX))/((double)RAND_MAX);\n");
 	fprintf(output, "\t\t}\n");
 	fprintf(output, "\ttao=(1.0/a0)*logl(1.0/tao_denom);\n");
-	fprintf(output, "\tif(tao<0.0) {\n");
-	fprintf(output, "\t\t//DEBUG\n");
-	fprintf(output, "\t\tprintf(\"tao<0 :%%Lf\\n\", tao);\n");
-	fprintf(output, "\t\tfor(int64 j=0;j<nOfReagents;j++) printf(\"%%lld,\", reagent[j]);\n");
-	fprintf(output, "\t\tprintf(\"\\n\");\n");
-	fprintf(output, "\t\tfor(int64 j=0;j<nOfReactions;j++) printf(\"%%Lf,\", au[j]);\n");
-	fprintf(output, "\t\tprintf(\"\\n\");\n");
-	fprintf(output, "\t\texit(EXIT_FAILURE);\n");
-	fprintf(output, "\t\t}\n");
+	if(debug_engine) {
+		fprintf(output, "\t//DEBUG\n");
+		fprintf(output, "\tif(tao<0.0) {\n");
+		fprintf(output, "\t\tprintf(\"tao<0 :%%Lf\\n\", tao);\n");
+		fprintf(output, "\t\tfor(int64 j=0;j<nOfReagents;j++) printf(\"%%lld,\", reagent[j]);\n");
+		fprintf(output, "\t\tprintf(\"\\n\");\n");
+		fprintf(output, "\t\tfor(int64 j=0;j<nOfReactions;j++) printf(\"%%Lf,\", au[j]);\n");
+		fprintf(output, "\t\tprintf(\"\\n\");\n");
+		fprintf(output, "\t\texit(EXIT_FAILURE);\n");
+		fprintf(output, "\t\t}\n");
+		}
 	fprintf(output, "\t((void (*)(void))(reactionDo[selectedReaction]))();\n");
 	fprintf(output, "\treactCounts[selectedReaction]++;\n");
 	fprintf(output, "\twhile(true) {\n");
