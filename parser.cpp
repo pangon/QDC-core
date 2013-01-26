@@ -5,7 +5,7 @@
  * parameters whose values can change during the simulation.
  * version 1.3.4
  *
- * Copyright (C) 2009-2012 Claudio Felicioli
+ * Copyright (C) 2009-2013 Claudio Felicioli
  * mail: c.felicioli@1d20.net - pangon@gmail.com
  *
  * QDC is free software; you can redistribute it and/or modify
@@ -619,7 +619,7 @@ int main(int nOfArgs, char** args) {
 
 	fprintf(output, "/*\n * QDC (quick direct-method controlled) is an optimized exact\n * implementation of the \
 Gillespie's direct-method. It is designed\n * for biochemical simulations when there is the need of dynamic\n * \
-parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2012 Claudio \
+parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2013 Claudio \
 Felicioli\n * mail: c.felicioli@1d20.net - pangon@gmail.com\n *\n * QDC is free software; you can redistribute it \
 and/or modify\n * it under the terms of the GNU General Public License as published by\n * the Free Software \
 Foundation; either version 3 of the License, or\n * (at your option) any later version.\n *\n * This program is \
@@ -710,7 +710,7 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 
 	fprintf(output, "/*\n * QDC (quick direct-method controlled) is an optimized exact\n * implementation of the \
 Gillespie's direct-method. It is designed\n * for biochemical simulations when there is the need of dynamic\n * \
-parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2012 Claudio \
+parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2013 Claudio \
 Felicioli\n * mail: c.felicioli@1d20.net - pangon@gmail.com\n *\n * QDC is free software; you can redistribute it \
 and/or modify\n * it under the terms of the GNU General Public License as published by\n * the Free Software \
 Foundation; either version 3 of the License, or\n * (at your option) any later version.\n *\n * This program is \
@@ -806,7 +806,7 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 
 	fprintf(output, "/*\n * QDC (quick direct-method controlled) is an optimized exact\n * implementation of the \
 Gillespie's direct-method. It is designed\n * for biochemical simulations when there is the need of dynamic\n * \
-parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2012 Claudio \
+parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2013 Claudio \
 Felicioli\n * mail: c.felicioli@1d20.net - pangon@gmail.com\n *\n * QDC is free software; you can redistribute it \
 and/or modify\n * it under the terms of the GNU General Public License as published by\n * the Free Software \
 Foundation; either version 3 of the License, or\n * (at your option) any later version.\n *\n * This program is \
@@ -865,7 +865,7 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 		}
 	fprintf(output, "/*\n * QDC (quick direct-method controlled) is an optimized exact\n * implementation of the \
 Gillespie's direct-method. It is designed\n * for biochemical simulations when there is the need of dynamic\n * \
-parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2012 Claudio \
+parameters whose values can change during the simulation.\n * version 1.3.4\n *\n * Copyright (C) 2009-2013 Claudio \
 Felicioli\n * mail: c.felicioli@1d20.net - pangon@gmail.com\n *\n * QDC is free software; you can redistribute it \
 and/or modify\n * it under the terms of the GNU General Public License as published by\n * the Free Software \
 Foundation; either version 3 of the License, or\n * (at your option) any later version.\n *\n * This program is \
