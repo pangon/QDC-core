@@ -135,6 +135,9 @@ int main(int nOfArgs, char** args) {
 	//default debug mode
 	debug_engine=false;
 
+	//default avogadro skipping
+	bool noavogadro=false;
+
 	//input parameters parsing
 	bool recognized_parameter;
 	for(int i=1;i<nOfArgs-1;i++) {
@@ -145,9 +148,14 @@ int main(int nOfArgs, char** args) {
 			debug_engine=true;
 			}
 
+		if(strcmp(args[i], "-noavogadro")==0) {
+			recognized_parameter=true;
+			noavogadro=true;
+			}
+
 		if(!recognized_parameter) {
 			fprintf(stderr, "unexpected parameter: %s\n", args[i]);
-			fprintf(stderr, "usage: %s [-debug] <descriptionfile>\n", args[0]);
+			fprintf(stderr, "usage: %s [-debug] [-noavogadro] <descriptionfile>\n", args[0]);
 			exit(EXIT_FAILURE);
 			}
 		}
@@ -879,7 +887,8 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "#define nOfInstReactions %lld\n", nOfInstReactions);
 //	fprintf(output, "#define Vol 0.0000000000000000003\n\n");
 	fprintf(output, "#define Vol %.300LfL\n", volume);
-	fprintf(output, "#define Avo 602200000000000000000000.0L\n\n");
+	if(noavogadro) fprintf(output, "#define Avo 1.0L\n\n");
+	else fprintf(output, "#define Avo 602200000000000000000000.0L\n\n");
 
 	fprintf(output, "typedef long long int int64;\n");
 	fprintf(output, "typedef long double double96;\n\n");
