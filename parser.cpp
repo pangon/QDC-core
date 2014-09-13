@@ -947,13 +947,11 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "\t\t}\n\n");
 	fprintf(output, "\tfprintf(output,\"");
 	for(int64 i=0;i<nOfReagents;i++) {
-		if(i>0) fprintf(output, ",");
-		fprintf(output, "%s", reagentsNames[i]);
+		fprintf(output, "%s,", reagentsNames[i]);
 		}
 	fprintf(output, "\\n\");\n");
 	fprintf(output, "\tfprintf(output2,\"");
 	for(int64 i=0;i<nOfReactions;i++) {
-		if(i>0) fprintf(output, ",");
 		int64 j=0;
 		if(reactFrom[i][j]==-1) {
 			fprintf(output, "NULL");
@@ -977,11 +975,11 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 				j++;
 				}
 			}
+		fprintf(output, ",");
 		}
-	fprintf(output, ",a0\\n\");\n");
+	fprintf(output, "a0,\\n\");\n");
 	fprintf(output, "\tfprintf(output3,\"");
 	for(int64 i=0;i<nOfReactions;i++) {
-		if(i>0) fprintf(output, ",");
 		int64 j=0;
 		if(reactFrom[i][j]==-1) {
 			fprintf(output, "NULL");
@@ -1005,9 +1003,9 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 				j++;
 				}
 			}
+		fprintf(output, ",");
 		}
 	for(int64 i=0;i<nOfInstReactions;i++) {
-		if(i>0 || nOfReactions>0) fprintf(output, ",");
 		int64 j=0;
 		while(instReactFrom[i][j]!=-1) {
 			if(j>0) fprintf(output, "+");
@@ -1021,6 +1019,7 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 			fprintf(output, "%lld %s", instReactToN[i][j], reagentsNames[instReactTo[i][j]]);
 			j++;
 			}
+		fprintf(output, ",");
 		}
 	fprintf(output, "\\n\");\n");
 
