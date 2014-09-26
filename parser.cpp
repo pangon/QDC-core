@@ -947,11 +947,13 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "\t\t}\n\n");
 	fprintf(output, "\tfprintf(output,\"");
 	for(int64 i=0;i<nOfReagents;i++) {
-		fprintf(output, "%s,", reagentsNames[i]);
+		if(i>0) fprintf(output, ",");
+		fprintf(output, "%s", reagentsNames[i]);
 		}
 	fprintf(output, "\\n\");\n");
 	fprintf(output, "\tfprintf(output2,\"");
 	for(int64 i=0;i<nOfReactions;i++) {
+		if(i>0) fprintf(output, ",");
 		int64 j=0;
 		if(reactFrom[i][j]==-1) {
 			fprintf(output, "NULL");
@@ -975,11 +977,11 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 				j++;
 				}
 			}
-		fprintf(output, ",");
 		}
-	fprintf(output, "a0,\\n\");\n");
+	fprintf(output, ",a0\\n\");\n");
 	fprintf(output, "\tfprintf(output3,\"");
 	for(int64 i=0;i<nOfReactions;i++) {
+		if(i>0) fprintf(output, ",");
 		int64 j=0;
 		if(reactFrom[i][j]==-1) {
 			fprintf(output, "NULL");
@@ -1003,9 +1005,9 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 				j++;
 				}
 			}
-		fprintf(output, ",");
 		}
 	for(int64 i=0;i<nOfInstReactions;i++) {
+		if(i>0 || nOfReactions>0) fprintf(output, ",");
 		int64 j=0;
 		while(instReactFrom[i][j]!=-1) {
 			if(j>0) fprintf(output, "+");
@@ -1019,7 +1021,6 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 			fprintf(output, "%lld %s", instReactToN[i][j], reagentsNames[instReactTo[i][j]]);
 			j++;
 			}
-		fprintf(output, ",");
 		}
 	fprintf(output, "\\n\");\n");
 
@@ -1056,18 +1057,27 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "\tchar lastLine2[10000];\n");
 	fprintf(output, "\tchar lastLine3[100000];\n\n");
 	fprintf(output, "\tlastLine[0]='\\0';\n");
-	fprintf(output, "\tfor(int64 i=0;i<nOfReagents;i++) snprintf(lastLine+strlen(lastLine), 9999-strlen(lastLine), \"%%lld,\", reagent[i]);\n");
+	fprintf(output, "\tfor(int64 i=0;i<nOfReagents;i++) {\n");
+	fprintf(output, "\t\tif(i>0) snprintf(lastLine+strlen(lastLine), 9999-strlen(lastLine), \",%%lld\", reagent[i]);\n");
+	fprintf(output, "\t\telse snprintf(lastLine+strlen(lastLine), 9999-strlen(lastLine), \"%%lld\", reagent[i]);\n");
+	fprintf(output, "\t\t}\n");
 	fprintf(output, "\tsnprintf(lastLine+strlen(lastLine), 9999-strlen(lastLine), \"\\n\");\n");
 	fprintf(output, "\tfprintf(output, \"%%s\", lastLine);\n");
 	fprintf(output, "\tlastLine2[0]='\\0';\n");
-	fprintf(output, "\tfor(int64 i=0;i<nOfReactions;i++) snprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \"%%Lf,\", au[i]);\n");
+	fprintf(output, "\tfor(int64 i=0;i<nOfReactions;i++) {\n");
+	fprintf(output, "\t\tif(i>0) snprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \",%%Lf\", au[i]);\n");
+	fprintf(output, "\t\telse snprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \"%%Lf\", au[i]);\n");
+	fprintf(output, "\t\t}\n");
 	fprintf(output, "\ta0=0.0;\n");
 	fprintf(output, "\tfor(int64 i=0;i<nOfReactions;i++) a0+=au[i];\n");
-	fprintf(output, "\tsnprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \"%%Lf,\", a0);\n");
+	fprintf(output, "\tsnprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \",%%Lf\", a0);\n");
 	fprintf(output, "\tsnprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \"\\n\");\n");
 	fprintf(output, "\tfprintf(output2, \"%%s\", lastLine2);\n");
 	fprintf(output, "\tlastLine3[0]='\\0';\n");
-	fprintf(output, "\tfor(int64 i=0;i<(nOfReactions+nOfInstReactions);i++) snprintf(lastLine3+strlen(lastLine3), 99999-strlen(lastLine3), \"%%lld,\", reactCounts[i]);\n");
+	fprintf(output, "\tfor(int64 i=0;i<(nOfReactions+nOfInstReactions);i++) {\n");
+	fprintf(output, "\t\tif(i>0) snprintf(lastLine3+strlen(lastLine3), 99999-strlen(lastLine3), \",%%lld\", reactCounts[i]);\n");
+	fprintf(output, "\t\telse snprintf(lastLine3+strlen(lastLine3), 99999-strlen(lastLine3), \"%%lld\", reactCounts[i]);\n");
+	fprintf(output, "\t\t}\n");
 	fprintf(output, "\tsnprintf(lastLine3+strlen(lastLine3), 99999-strlen(lastLine3), \"\\n\");\n");
 	fprintf(output, "\tfprintf(output3, \"%%s\", lastLine3);\n\n");
 	//fprintf(output, "\twhile(t<tLimit && ite<iteLimit) {\n");
@@ -1113,18 +1123,27 @@ see <http://www.gnu.org/licenses/>.\n */\n\n");
 	fprintf(output, "\t\tif(tSamplingTemp>tSampling) {\n");
 	fprintf(output, "\t\t\ttSamplingTemp-=tSampling;\n");
 	fprintf(output, "\t\t\tlastLine[0]='\\0';\n");
-	fprintf(output, "\t\t\tfor(int64 i=0;i<nOfReagents;i++) snprintf(lastLine+strlen(lastLine), 9999-strlen(lastLine), \"%%lld,\", reagent[i]);\n");
+	fprintf(output, "\t\t\tfor(int64 i=0;i<nOfReagents;i++) {\n");
+	fprintf(output, "\t\t\t\tif(i>0) snprintf(lastLine+strlen(lastLine), 9999-strlen(lastLine), \",%%lld\", reagent[i]);\n");
+	fprintf(output, "\t\t\t\telse snprintf(lastLine+strlen(lastLine), 9999-strlen(lastLine), \"%%lld\", reagent[i]);\n");
+	fprintf(output, "\t\t\t\t}\n");
 	fprintf(output, "\t\t\tsnprintf(lastLine+strlen(lastLine), 9999-strlen(lastLine), \"\\n\");\n");
 	fprintf(output, "\t\t\tfprintf(output, \"%%s\", lastLine);\n");
 	fprintf(output, "\t\t\tlastLine2[0]='\\0';\n");
-	fprintf(output, "\t\t\tfor(int64 i=0;i<nOfReactions;i++) snprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \"%%Lf,\", au[i]);\n");
+	fprintf(output, "\t\t\tfor(int64 i=0;i<nOfReactions;i++) {\n");
+	fprintf(output, "\t\t\t\tif(i>0) snprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \",%%Lf\", au[i]);\n");
+	fprintf(output, "\t\t\t\telse snprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \"%%Lf\", au[i]);\n");
+	fprintf(output, "\t\t\t\t}\n");
 	fprintf(output, "\t\t\ta0=0.0;\n");
 	fprintf(output, "\t\t\tfor(int64 i=0;i<nOfReactions;i++) a0+=au[i];\n");
-	fprintf(output, "\t\t\tsnprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \"%%Lf,\", a0);\n");
+	fprintf(output, "\t\t\tsnprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \",%%Lf\", a0);\n");
 	fprintf(output, "\t\t\tsnprintf(lastLine2+strlen(lastLine2), 9999-strlen(lastLine2), \"\\n\");\n");
 	fprintf(output, "\t\t\tfprintf(output2, \"%%s\", lastLine2);\n");
 	fprintf(output, "\t\t\tlastLine3[0]='\\0';\n");
-	fprintf(output, "\t\t\tfor(int64 i=0;i<(nOfReactions+nOfInstReactions);i++) snprintf(lastLine3+strlen(lastLine3), 99999-strlen(lastLine3), \"%%lld,\", reactCounts[i]);\n");
+	fprintf(output, "\t\t\tfor(int64 i=0;i<(nOfReactions+nOfInstReactions);i++) {\n");
+	fprintf(output, "\t\t\t\tif(i>0) snprintf(lastLine3+strlen(lastLine3), 99999-strlen(lastLine3), \",%%lld\", reactCounts[i]);\n");
+	fprintf(output, "\t\t\t\telse snprintf(lastLine3+strlen(lastLine3), 99999-strlen(lastLine3), \"%%lld\", reactCounts[i]);\n");
+	fprintf(output, "\t\t\t\t}\n");
 	fprintf(output, "\t\t\tsnprintf(lastLine3+strlen(lastLine3), 99999-strlen(lastLine3), \"\\n\");\n");
 	fprintf(output, "\t\t\tfprintf(output3, \"%%s\", lastLine3);\n");
 	fprintf(output, "\t\t\t}\n");
